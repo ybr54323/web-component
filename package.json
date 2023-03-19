@@ -5,8 +5,9 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "test:unit": "vue-cli-service test:unit",
-    "lint": "vue-cli-service lint"
+    "test:unit": "vue-cli-service test:unit --watch",
+    "lint": "vue-cli-service lint",
+    "build:lib": "vue-cli-service build --target lib --name @ybr/web-component ./lib/index.js"
   },
   "dependencies": {
     "ant-design-vue": "1.7.8",

@@ -1,133 +1,186 @@
 <template>
-  <div>
-    <a-form :form="form" @submit="handleSubmit" layout="vertical" class="form">
+  <a-spin :spinning="loading">
+    <a-form :form="form" layout="vertical" class="form">
       <div
+        class="row"
         :style="{
           gridTemplateColumns: `repeat(${columns.length + 1}, auto)`,
+          ...rowStyle,
         }"
-        class="row"
-        v-for="(row, i) in form.getFieldValue('keys')"
+        v-for="row in form.getFieldValue('keys')"
         :key="row"
       >
         <div class="col" v-for="(col, j) in columns" :key="j">
-          <a-form-item label="test">
-            <a-input
-              v-decorator="[
-                `list[${row}][${col.dataIndex}]`,
-
-                {
-                  validateTrigger: ['change', 'blur'],
-                  rules: [
-                    {
-                      required: true,
-                      whitespace: true,
-                      message:
-                        'Please input passenger\'s name or delete this field.',
-                    },
-                  ],
-                },
-              ]"
-            ></a-input>
+          <a-form-item :label="row === 0 && col.label">
+            <component
+              :is="col.componentName"
+              v-bind="col"
+              v-decorator="genVDecorator(row, col)"
+            ></component>
           </a-form-item>
         </div>
-        <a @click="remove(i)" href="javascript:;">删除</a>
+        <slot name="removeTrigger" v-bind="genRemoveSlotScope(row)">
+          <a @click="remove(row)" href="javascript:;">删除</a>
+        </slot>
       </div>
     </a-form>
-    <a-form-item v-bind="formItemLayoutWithOutLabel">
-      <a-button type="dashed" style="width: 60%" @click="add">
-        <a-icon type="plus" /> Add field
+    <slot name="addTrigger" v-bind="genAddSlotScope()">
+      <a-button class="button-add" type="dashed" @click="add">
+        <a-icon type="plus" /> {{ addButtonText }}
       </a-button>
-    </a-form-item>
-    <a-form-item v-bind="formItemLayoutWithOutLabel">
-      <a-button type="primary" html-type="submit" @click="handleSubmit">
-        Submit
-      </a-button>
-    </a-form-item>
-  </div>
+    </slot>
+    <a-button @click="handleSubmit">submit</a-button>
+  </a-spin>
 </template>
 
 <script>
-let id = 0;
 export default {
   name: "TableForm",
   props: {
+    rowStyle: {
+      type: Object,
+      default: () => {},
+    },
     columns: {
       type: Array,
-      default: () => [
-        {
-          dataIndex: "name",
-        },
-        {
-          dataIndex: "age",
-        },
-      ],
+      default: () => [],
+    },
+    addButtonText: {
+      type: String,
+      default: "新增",
+    },
+    maxLength: {
+      type: Number,
+      default: Infinity,
+    },
+    minLength: {
+      type: Number,
+      default: -Infinity,
     },
   },
   data() {
+    const form = this.$form.createForm(this, { name: "dynamic_form_item" });
+    form.getFieldDecorator("keys", { initialValue: [], preserve: true });
     return {
-      //   formItemLayout: {
-      //     labelCol: {
-      //       xs: { span: 24 },
-      //       sm: { span: 4 },
-      //     },
-      //     wrapperCol: {
-      //       xs: { span: 24 },
-      //       sm: { span: 20 },
-      //     },
-      //   },
-      formItemLayoutWithOutLabel: {
-        wrapperCol: {
-          xs: { span: 24, offset: 0 },
-          sm: { span: 20, offset: 4 },
-        },
-      },
-      //   form: this.$form.createForm(this, { name: "dynamic_form_item" }),
+      loading: false,
+      id: 0,
+      form,
     };
   },
-  beforeCreate() {
-    this.form = this.$form.createForm(this, { name: "dynamic_form_item" });
-    this.form.getFieldDecorator("keys", { initialValue: [], preserve: true });
-  },
+
   methods: {
+    init(params = {}) {
+      const { list } = params;
+      if (Array.isArray(list) && list.length) {
+        list.forEach((_, i) => {
+          this.add();
+          if (i === list.length - 1) {
+            this.$nextTick(() => {
+              const values = list.reduce((values, record, i) => {
+                for (let [key, value] of Object.entries(record)) {
+                  values[key] = values[key] ?? [];
+                  values[key][i] = value;
+                }
+                return values;
+              }, {});
+              this.form.setFieldsValue(values);
+            });
+          }
+        });
+      }
+      return this.reset;
+    },
+    reset() {
+      return this.form.resetFields();
+    },
+    genAddSlotScope() {
+      return {
+        addCallback: this.add.bind(this),
+      };
+    },
+    genRemoveSlotScope(row) {
+      return {
+        currentKey: row,
+        deleteCallback: this.remove.bind(this, row),
+        getCurrentRecord: () => {
+          return this.genRecord(row);
+        },
+      };
+    },
+    genVDecorator(row, col) {
+      const path = `${col.dataIndex}[${row}]`;
+      const options = {
+        ...col,
+      };
+      return [path, options];
+    },
     remove(k) {
       const { form } = this;
-      // can use data-binding to get
       const keys = form.getFieldValue("keys");
-      // We need at least one passenger
-      if (keys.length === 1) {
+      if (keys.length <= this.minLength) return;
+      if (keys.length === 0) {
         return;
       }
-
-      // can use data-binding to set
       form.setFieldsValue({
         keys: keys.filter((key) => key !== k),
+      });
+      this.$emit("del", {
+        records: this.genRecords(this.form.getFieldsValue()),
       });
     },
 
     add() {
       const { form } = this;
-      // can use data-binding to get
       const keys = form.getFieldValue("keys");
-      const nextKeys = keys.concat(id++);
-      // can use data-binding to set
-      // important! notify form to detect changes
+      if (keys.length >= this.maxLength) return;
+      const nextKeys = keys.concat(this.id++);
       form.setFieldsValue({
         keys: nextKeys,
       });
-    },
-
-    handleSubmit(e) {
-      e.preventDefault();
-      this.form.validateFields((err, values) => {
-        if (!err) {
-          const { keys, names } = values;
-          console.log("Received values of form: ", values);
-          console.log(
-            "Merged values:",
-            keys.map((key) => names[key])
-          );
-        }
+      this.$emit("add", {
+        records: this.genRecords(this.form.getFieldsValue()),
       });
+    },
+    validateFields(cb) {
+      this.form.validateFields((err, values) => {
+        const records = [];
+        const { keys, ...vals } = values;
+        for (let [field, vs = []] of Object.entries(vals)) {
+          vs.forEach((value, i) => {
+            records[i] = records[i] ?? {};
+            records[i][field] = value;
+          });
+        }
+        cb(err, this.genRecords(values));
+      });
+    },
+    handleSubmit() {
+      this.validateFields((err, records) => {
+        console.warn(err, records);
+      });
+    },
+    genRecords(values) {
+      const { keys, ...vals } = values;
+      return keys.reduce((records, _, i) => {
+        return records.concat(
+          [...Object.entries(vals)].reduce((record, [field, vs]) => {
+            return {
+              ...record,
+              [field]: vs[i],
+            };
+          }, {})
+        );
+      }, []);
+    },
+    genRecord(key) {
+      const { keys, ...vals } = this.form.getFieldsError();
+      const i = keys.indexOf(key);
+      return [...Object.entries(vals)].reduce((record, [field, vs]) => {
+        return {
+          ...record,
+          [field]: vs[i],
+        };
+      }, {});
     },
   },
 };
@@ -136,24 +189,11 @@ export default {
 .form {
   .row {
     display: grid;
-    align-items: center;
+    gap: 16px;
+    align-items: flex-start;
+    &:first-child {
+      align-items: center;
+    }
   }
-}
-</style>
-<style>
-.dynamic-delete-button {
-  cursor: pointer;
-  position: relative;
-  top: 4px;
-  font-size: 24px;
-  color: #999;
-  transition: all 0.3s;
-}
-.dynamic-delete-button:hover {
-  color: #777;
-}
-.dynamic-delete-button[disabled] {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 </style>

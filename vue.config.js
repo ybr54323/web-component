@@ -9,6 +9,7 @@ module.exports = defineConfig({
         lib: path.resolve(__dirname, "./lib"),
       },
     },
+    // externals: [""]
   },
   lintOnSave: true,
 
