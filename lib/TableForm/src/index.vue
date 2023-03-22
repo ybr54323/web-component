@@ -1,5 +1,6 @@
 <template>
   <a-spin :spinning="loading">
+    {{ form.getFieldsValue() }}
     <a-form :form="form" layout="vertical" class="form">
       <div
         class="row"
@@ -11,23 +12,34 @@
         :key="row"
       >
         <div class="col" v-for="(col, j) in columns" :key="j">
-          <a-form-item v-if="!col.customRender" :label="i === 0 && col.label">
+          <div v-if="'render' in col" :class="[i == 0 && 'column-wrap']">
+            <column-render
+              :render="col.render"
+              v-bind="genRenderScope(col, i, j, row)"
+            ></column-render>
+          </div>
+          <div v-else-if="'slot' in col" :class="[i == 0 && 'column-wrap']">
+            <slot :name="col.slot" v-bind="genRenderScope(col, i, j, row)">
+            </slot>
+          </div>
+          <a-form-item v-else :label="i === 0 && col.label">
             <component
               :is="col.componentName"
               v-bind="col"
-              v-decorator="genVDecorator(row, col)"
+              v-decorator="genVDecorator(i, col)"
             ></component>
           </a-form-item>
-          <div v-else :class="[i !== 0 && 'wrap']">
-            <slot
-              :name="col.customRender"
-              v-bind="genRenderScope(col, i, j, row)"
-            >
-            </slot>
-          </div>
         </div>
-        <div v-if="showRemoveTrigger" :class="[i !== 0 && 'wrap']">
-          <slot name="removeTrigger" v-bind="genRemoveSlotScope(row, i)">
+        <div
+          v-if="showRemoveTrigger"
+          :class="[i === 0 && 'remove-trigger-wrap']"
+        >
+          <column-render
+            v-if="removeRender"
+            :render="removeRender"
+            v-bind="genRemoveSlotScope(row, i)"
+          ></column-render>
+          <slot v-else name="removeSlot" v-bind="genRemoveSlotScope(row, i)">
             <a @click="remove(row)" href="javascript:;">删除</a>
           </slot>
         </div>
@@ -42,8 +54,10 @@
 </template>
 
 <script>
+import ColumnRender from "./columnRender";
 export default {
   name: "TableForm",
+  components: { ColumnRender },
   props: {
     rowStyle: {
       type: Object,
@@ -69,6 +83,7 @@ export default {
       type: Boolean,
       default: true,
     },
+    removeRender: Function,
   },
   data() {
     const form = this.$form.createForm(this, { name: "dynamic_form_item" });
@@ -121,12 +136,12 @@ export default {
     reset() {
       return this.form.resetFields();
     },
-    genRenderScope(col, rowIndex, colIndex, row) {
+    genRenderScope(column, rowIndex, colIndex, row) {
       return {
-        ...col,
+        column,
         rowIndex,
         colIndex,
-        getCurrentRecord: this.genRecord.bind(this, row),
+        getCurrentRecord: this.genRecord.bind(this, rowIndex),
         getRecords: this.genRecords.bind(this),
       };
     },
@@ -135,15 +150,15 @@ export default {
         addCallback: this.add.bind(this),
       };
     },
-    genRemoveSlotScope(row, index) {
+    genRemoveSlotScope(row, rowIndex) {
       return {
-        index,
+        rowIndex,
         removeCallback: this.remove.bind(this, row),
-        getCurrentRecord: this.genRecord.bind(this, row),
+        getCurrentRecord: this.genRecord.bind(this, rowIndex),
       };
     },
-    genVDecorator(row, col) {
-      const path = `${col.dataIndex}[${row}]`;
+    genVDecorator(rowIndex, col) {
+      const path = `${col.dataIndex}[${rowIndex}]`;
       const options = {
         ...col,
       };
@@ -158,14 +173,11 @@ export default {
     },
     remove(k) {
       const { form } = this;
-      const keys = form.getFieldValue("keys");
+      const { keys } = form.getFieldsValue();
       if (keys.length <= this.minLength) return;
-      if (keys.length === 0) {
-        return;
-      }
-      form.setFieldsValue({
-        keys: keys.filter((key) => key !== k),
-      });
+      const index = keys.indexOf(k);
+      keys.splice(index, 1);
+      form.setFieldsValue({ keys });
       this.$emit("del", {
         records: this.genRecords(),
       });
@@ -211,7 +223,7 @@ export default {
     },
     genRecords() {
       const { keys, ...values } = this.form.getFieldsValue();
-      return keys.reduce((records, _, i) => {
+      return keys.reduce((records, i) => {
         return records.concat(
           [...Object.entries(values)].reduce((record, [field, vs]) => {
             return {
@@ -222,15 +234,15 @@ export default {
         );
       }, []);
     },
-    genRecord(key) {
+    genRecord(rowIndex) {
       const { keys, ...vals } = this.form.getFieldsValue();
-      const i = keys.indexOf(key);
-      return [...Object.entries(vals)].reduce((record, [field, vs]) => {
+      const record = [...Object.entries(vals)].reduce((record, [field, vs]) => {
         return {
           ...record,
-          [field]: vs[i],
+          [field]: vs[rowIndex],
         };
       }, {});
+      return record;
     },
   },
 };
@@ -240,15 +252,15 @@ export default {
   .row {
     display: grid;
     gap: 16px;
-    align-items: flex-start;
-
-    &:first-child {
-      align-items: center;
+    .col {
+      &:has(.column-wrap) {
+        padding-top: 29px;
+      }
     }
   }
-  .wrap {
-    position: relative;
-    top: 6px;
+
+  .remove-trigger-wrap {
+    padding-top: 29px;
   }
 }
 </style>

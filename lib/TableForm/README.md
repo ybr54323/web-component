@@ -12,7 +12,7 @@ import 'ant-design-vue/dist/antd.less
 // 全量注册组件
 Vue.use(antv)
 // 或者按需注册
-// 注意：Form, FormItem是一定要注册的、其他表单元素，例如：Input，Select，如有用到可按需注册
+// 注意：Form, FormItem是一定要注册的、其他表单元素，例如：Input，Select，按需注册
 import { Form } from 'ant-design-vue'
 Vue.use(Form)
 Vue.use(Form.Item)

@@ -1,12 +1,15 @@
 <template>
   <div class="about">
-    <table-form :showRemoveTrigger="false" ref="form" :columns="columns">
+    <table-form ref="form" :columns="columns">
       <template slot="age" slot-scope="props">
         <a href="javascript:;" @click="up(props)">上移</a>
         <a href="javascript:;" @click="down(props)"> 下移</a>
       </template>
+      <template #removeSlot="scope">
+        <span @click="scope.removeCallback">test-remove-slot</span>
+      </template>
       <!-- <template
-        slot="removeTrigger"
+        slot="removeSlot"
         slot-scope="{ currentKey, removeCallback }"
       >
         <button @click="removeCallback">
@@ -48,7 +51,7 @@ export default {
           label: "age",
           dataIndex: "age",
           componentName: "a-input",
-          customRender: "age",
+          slot: "age",
         },
         {
           label: "TestSelect",
@@ -104,7 +107,6 @@ export default {
         console.warn(e, values);
       });
     },
-
     reset() {
       this.$refs.form.reset();
     },
@@ -127,6 +129,10 @@ export default {
         records[rowIndex + 1] = record;
         this.$refs.form.update({ list: records });
       }
+    },
+    removeRender(h, params) {
+      console.log(params);
+      return h("div", [JSON.stringify(params)]);
     },
   },
 };
