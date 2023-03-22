@@ -108,6 +108,7 @@ export default {
                 }
                 return values;
               }, {});
+              // 有报错，不影响使用，暂时无法修复
               this.form.setFieldsValue(values);
             });
           }
