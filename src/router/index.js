@@ -15,6 +15,12 @@ const routes = [
     name: 'TableForm',
     component: () =>
       import(/* webpackChunkName: "TableForm" */ '../views/TableForm.vue')
+  },
+  {
+    path: '/tableFormColumnRender',
+    name: 'TableFormColumnRender',
+    component: () =>
+      import(/* webpackChunkName: "TableForm" */ '../views/TableFormColumnRender.vue')
   }
 ]
 

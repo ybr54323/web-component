@@ -1,37 +1,12 @@
 <template>
   <div class="about">
-    <table-form ref="form" :columns="columns">
-      <template slot="age" slot-scope="props">
-        <a href="javascript:;" @click="up(props)">上移</a>
-        <a href="javascript:;" @click="down(props)"> 下移</a>
-      </template>
-      <template #removeSlot="scope">
-        <span @click="scope.removeCallback">test-remove-slot</span>
-      </template>
-      <!-- <template
-        slot="removeSlot"
-        slot-scope="{ currentKey, removeCallback }"
-      >
-        <button @click="removeCallback">
-          test remove trigger {{ currentKey }}
-        </button>
-      </template> -->
-      <!-- <a
-        slot="addTrigger"
-        href="javascript:;"
-        slot-scope="{ addCallback }"
-        @click="addCallback"
-        >test add trigger</a
-      > -->
-    </table-form>
+    <table-form ref="form" :columns="columns"> </table-form>
     <a-button @click="submit">submit</a-button>
     <a-button @click="reset">test reset</a-button>
   </div>
 </template>
 <script>
 import { TableForm } from "lib";
-// import { TableForm } from "../../dist/@ybr/web-component.umd";
-// import "../../dist/@ybr/web-component.css";
 
 export default {
   name: "TableFormPage",
@@ -51,7 +26,21 @@ export default {
           label: "age",
           dataIndex: "age",
           componentName: "a-input",
-          slot: "age",
+          render(h, props) {
+            const column = JSON.stringify(props.column);
+            const record = JSON.stringify(props.getCurrentRecord());
+            const records = JSON.stringify(props.getRecords());
+            return h("div", [
+              h("details", [h("summary", "props.rowIndex"), props.rowIndex]),
+              h("details", [h("summary", "props.colIndex"), props.colIndex]),
+
+              h("details", [h("summary", "props.column"), column]),
+
+              h("details", [h("summary", "props.getCurrentRecord()"), record]),
+
+              h("details", [h("summary", "props.getRecords()"), records]),
+            ]);
+          },
         },
         {
           label: "TestSelect",
@@ -136,12 +125,6 @@ export default {
       console.log(params);
       return h("div", [JSON.stringify(params)]);
     },
-    // update() {
-    //   const list = this.list.concat(this.list)
-    //   this.$refs.form.update({
-    //     list,
-    //   });
-    // },
   },
 };
 </script>

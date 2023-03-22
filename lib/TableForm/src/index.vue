@@ -1,6 +1,5 @@
 <template>
   <a-spin :spinning="loading">
-    {{ form.getFieldsValue() }}
     <a-form :form="form" layout="vertical" class="form">
       <div
         class="row"
@@ -15,12 +14,11 @@
           <div v-if="'render' in col" :class="[i == 0 && 'column-wrap']">
             <column-render
               :render="col.render"
-              v-bind="genRenderScope(col, i, j, row)"
+              v-bind="genRenderScope(col, i, j)"
             ></column-render>
           </div>
           <div v-else-if="'slot' in col" :class="[i == 0 && 'column-wrap']">
-            <slot :name="col.slot" v-bind="genRenderScope(col, i, j, row)">
-            </slot>
+            <slot :name="col.slot" v-bind="genRenderScope(col, i, j)"> </slot>
           </div>
           <a-form-item v-else :label="i === 0 && col.label">
             <component
@@ -45,7 +43,7 @@
         </div>
       </div>
     </a-form>
-    <slot name="addTrigger" v-bind="genAddSlotScope()">
+    <slot name="addSlot" v-bind="genAddSlotScope()">
       <a-button block class="button-add" type="dashed" @click="add">
         <a-icon type="plus" /> {{ addButtonText }}
       </a-button>
@@ -96,21 +94,6 @@ export default {
   },
 
   methods: {
-    update(params = {}) {
-      const { list } = params;
-      if (!Array.isArray(list)) return;
-      const data = {};
-      list.forEach((item, i) => {
-        [...Object.entries(item)].forEach(([key, value]) => {
-          data[key] = data[key] || [];
-          data[key][i] = value;
-        });
-      });
-      this.form.setFieldsValue({
-        keys: this.form.getFieldValue("keys"),
-        ...data,
-      });
-    },
     init(params = {}) {
       const { list } = params;
       if (Array.isArray(list) && list.length) {
@@ -134,9 +117,10 @@ export default {
     },
 
     reset() {
+      this.id = 0;
       return this.form.resetFields();
     },
-    genRenderScope(column, rowIndex, colIndex, row) {
+    genRenderScope(column, rowIndex, colIndex) {
       return {
         column,
         rowIndex,
@@ -223,7 +207,7 @@ export default {
     },
     genRecords() {
       const { keys, ...values } = this.form.getFieldsValue();
-      return keys.reduce((records, i) => {
+      return keys.reduce((records, key, i) => {
         return records.concat(
           [...Object.entries(values)].reduce((record, [field, vs]) => {
             return {
@@ -236,13 +220,12 @@ export default {
     },
     genRecord(rowIndex) {
       const { keys, ...vals } = this.form.getFieldsValue();
-      const record = [...Object.entries(vals)].reduce((record, [field, vs]) => {
+      return [...Object.entries(vals)].reduce((record, [field, vs]) => {
         return {
           ...record,
           [field]: vs[rowIndex],
         };
       }, {});
-      return record;
     },
   },
 };
