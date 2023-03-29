@@ -27,19 +27,27 @@ export default {
           dataIndex: "age",
           componentName: "a-input",
           render(h, props) {
-            const column = JSON.stringify(props.column);
-            const record = JSON.stringify(props.getCurrentRecord());
-            const records = JSON.stringify(props.getRecords());
-            return h("div", [
-              h("details", [h("summary", "props.rowIndex"), props.rowIndex]),
-              h("details", [h("summary", "props.colIndex"), props.colIndex]),
+            // const column = JSON.stringify(props.column);
+            // const record = JSON.stringify(props.getCurrentRecord());
+            // const records = JSON.stringify(props.getRecords());
+            // console.warn(props.getCurrentRecord())
+            return h("a-input", {
+              on: {
+                change(e) {
+                  props.setFieldValue(e.target.value);
+                },
+              },
+            });
+            // return h("div", [
+            //   h("details", [h("summary", "props.rowIndex"), props.rowIndex]),
+            //   h("details", [h("summary", "props.colIndex"), props.colIndex]),
 
-              h("details", [h("summary", "props.column"), column]),
+            //   h("details", [h("summary", "props.column"), column]),
 
-              h("details", [h("summary", "props.getCurrentRecord()"), record]),
+            //   h("details", [h("summary", "props.getCurrentRecord()"), record]),
 
-              h("details", [h("summary", "props.getRecords()"), records]),
-            ]);
+            //   h("details", [h("summary", "props.getRecords()"), records]),
+            // ]);
           },
         },
         {

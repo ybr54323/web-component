@@ -1,5 +1,7 @@
 <template>
   <a-spin :spinning="loading">
+    {{ form.getFieldsValue() }}
+
     <a-form :form="form" layout="vertical" class="form">
       <div
         class="row"
@@ -38,7 +40,9 @@
             v-bind="genRemoveSlotScope(row, i)"
           ></column-render>
           <slot v-else name="removeSlot" v-bind="genRemoveSlotScope(row, i)">
-            <a @click="remove(row)" href="javascript:;">删除</a>
+            <a class=".remove-btn" @click="remove(row)" href="javascript:;"
+              >删除</a
+            >
           </slot>
         </div>
       </div>
@@ -128,6 +132,17 @@ export default {
         colIndex,
         getCurrentRecord: this.genRecord.bind(this, rowIndex),
         getRecords: this.genRecords.bind(this),
+        setFieldValue: (value) => {
+          let values = this.form.getFieldsValue([column.dataIndex]);
+          if (!values[column.dataIndex]) {
+            this.form.getFieldDecorator(column.dataIndex, { initialValue: [] });
+            values = this.form.getFieldsValue([column.dataIndex]);
+          }
+          values[column.dataIndex][rowIndex] = value;
+          this.form.setFieldsValue({
+            [column.dataIndex]: values[column.dataIndex],
+          });
+        },
       };
     },
     genAddSlotScope() {
